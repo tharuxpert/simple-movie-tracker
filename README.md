@@ -1,50 +1,50 @@
-# Welcome to your Expo app 👋
+# Simple Movie Tracker
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A React Native application that helps you keep track of movies and TV series you've watched, along with tracking watch time and episodes.
 
-## Get started
+## Features
 
-1. Install dependencies
+- Add movies and TV series to your watch list
+- Track episodes watched for TV series
+- Track total watch time
+- Beautiful UI with Tailwind CSS
+- Persistent storage using AsyncStorage
 
-   ```bash
-   npm install
-   ```
+## Setup
 
-2. Start the app
-
-   ```bash
-    npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+1. Install dependencies:
 
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+2. Start the development server:
 
-## Learn more
+```bash
+npx expo start
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+3. Use the Expo Go app on your mobile device to scan the QR code and run the app
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Usage
 
-## Join the community
+- To add a new movie/series:
 
-Join our community of developers creating universal apps.
+  1. Enter the title in the input field
+  2. Select whether it's a movie or TV series
+  3. Tap "Add Movie" or "Add Series"
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- To track episodes:
+
+  - For TV series, tap "+1 Episode" to increment the episode count
+  - For movies, tap "Watched" to mark it as watched
+
+- The total watch time is displayed at the top of the list
+
+## Technologies Used
+
+- React Native
+- Expo
+- TailwindCSS/NativeWind
+- AsyncStorage for persistence
+- TypeScript
