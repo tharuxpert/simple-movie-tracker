@@ -296,6 +296,6 @@ export const createHomeStyles = (colors: ThemeContextType["colors"]) =>
       fontSize: 16,
       color: colors.muted,
       textAlign: "center",
-      marginTop: 8,
+      marginTop: 10,
     },
   }); 

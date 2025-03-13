@@ -1,5 +1,6 @@
 export interface Movie {
   id: string;
+  tempId?: string; // Temporary ID used during sync
   title: string;
   type: "movie" | "series";
   episodesWatched: number;

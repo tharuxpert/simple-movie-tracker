@@ -1,7 +1,10 @@
 import * as React from "react";
 import { StatusBar } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type Theme = "light" | "dark";
+
+const THEME_STORAGE_KEY = "@movie_tracker_theme";
 
 export interface ThemeContextType {
   theme: Theme;
@@ -49,10 +52,35 @@ export const ThemeContext = React.createContext<ThemeContextType>({
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = React.useState<Theme>("light");
+  const [isLoading, setIsLoading] = React.useState(true);
 
-  const toggleTheme = React.useCallback(() => {
-    setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
+  // Load saved theme on mount
+  React.useEffect(() => {
+    const loadTheme = async () => {
+      try {
+        const savedTheme = await AsyncStorage.getItem(THEME_STORAGE_KEY);
+        if (savedTheme && (savedTheme === "light" || savedTheme === "dark")) {
+          setTheme(savedTheme);
+        }
+      } catch (error) {
+        console.error("Error loading theme:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadTheme();
   }, []);
+
+  const toggleTheme = React.useCallback(async () => {
+    try {
+      const newTheme = theme === "light" ? "dark" : "light";
+      await AsyncStorage.setItem(THEME_STORAGE_KEY, newTheme);
+      setTheme(newTheme);
+    } catch (error) {
+      console.error("Error saving theme:", error);
+    }
+  }, [theme]);
 
   const value = React.useMemo(
     () => ({
@@ -71,6 +99,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       StatusBar.setBackgroundColor("#FFFFFF");
     }
   }, [theme]);
+
+  if (isLoading) {
+    return null; // Or a loading spinner if you prefer
+  }
 
   return (
     <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
