@@ -3,7 +3,7 @@ import { StatusBar } from "react-native";
 
 type Theme = "light" | "dark";
 
-interface ThemeContextType {
+export interface ThemeContextType {
   theme: Theme;
   colors: {
     text: string;

@@ -1,7 +1,7 @@
 import { StyleSheet, Platform, StatusBar } from "react-native";
-import { ThemeColors } from "../lib/theme";
+import { ThemeContextType } from "../lib/theme";
 
-export const createHomeStyles = (colors: ThemeColors) =>
+export const createHomeStyles = (colors: ThemeContextType["colors"]) =>
   StyleSheet.create({
     safeArea: {
       flex: 1,
@@ -285,5 +285,17 @@ export const createHomeStyles = (colors: ThemeColors) =>
     watchedButtonTextActive: {
       color: colors.primary,
       fontWeight: "600",
+    },
+    loadingContainer: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 24,
+    },
+    loadingText: {
+      fontSize: 16,
+      color: colors.muted,
+      textAlign: "center",
+      marginTop: 8,
     },
   }); 

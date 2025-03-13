@@ -9,9 +9,9 @@ import {
   Platform,
   StatusBar,
   Modal,
-  Alert,
   Animated,
   Pressable,
+  RefreshControl,
 } from "react-native";
 import { MovieCard } from "../../components/movie-card";
 import { useState, useMemo, useRef, useEffect } from "react";
@@ -23,12 +23,17 @@ import { AddForm } from "../../components/add-form";
 import { EditModal } from "../../components/edit-modal";
 import { SortModal } from "../../components/sort-modal";
 import { FilterBar } from "../../components/filter-bar";
+import { WarningDialog } from "../../components/warning-dialog";
+import { Loader } from "../../components/loader";
 import { movieService } from "../../lib/movieService";
+import React from "react";
 
 export default function HomeScreen() {
   const { colors, toggleTheme, theme } = useTheme();
   const styles = createHomeStyles(colors);
   const [movies, setMovies] = useState<Movie[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [title, setTitle] = useState("");
   const [type, setType] = useState<"movie" | "series">("movie");
   const [watched, setWatched] = useState(false);
@@ -50,24 +55,65 @@ export default function HomeScreen() {
   const [showSearch, setShowSearch] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const searchAnimation = useRef(new Animated.Value(0)).current;
+  const [warningDialog, setWarningDialog] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type?: "warning" | "error" | "info";
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+  });
 
   useEffect(() => {
     loadMovies();
   }, []);
 
   const loadMovies = async () => {
-    const data = await movieService.getMovies();
-    setMovies(data);
+    setIsLoading(true);
+    try {
+      const data = await movieService.getMovies();
+      setMovies(data);
+    } catch (error) {
+      showWarning("Error", "Failed to load movies", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const data = await movieService.getMovies();
+      setMovies(data);
+    } catch (error) {
+      showWarning("Error", "Failed to refresh movies", "error");
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
+
+  const showWarning = (
+    title: string,
+    message: string,
+    type: "warning" | "error" | "info" = "warning"
+  ) => {
+    setWarningDialog({ visible: true, title, message, type });
   };
 
   const addMovie = async () => {
     if (!title.trim()) {
-      Alert.alert("Error", "Please enter a title");
+      showWarning("Error", "Please enter a title", "error");
       return;
     }
 
     if (type === "series" && !episodesWatched.trim()) {
-      Alert.alert("Error", "Please enter the number of episodes watched");
+      showWarning(
+        "Error",
+        "Please enter the number of episodes watched",
+        "error"
+      );
       return;
     }
 
@@ -85,16 +131,24 @@ export default function HomeScreen() {
       }),
     };
 
-    const addedMovie = await movieService.addMovie(newMovie);
-    if (addedMovie) {
-      setMovies((prev) => [...prev, addedMovie]);
-      setTitle("");
-      setWatched(false);
-      setEpisodesWatched("");
-      setTotalEpisodes("");
-      setCurrentSeason("");
-    } else {
-      Alert.alert("Error", "Failed to add movie");
+    try {
+      const addedMovie = await movieService.addMovie(newMovie);
+      if (addedMovie) {
+        setMovies((prev) => [...prev, addedMovie]);
+        setTitle("");
+        setWatched(false);
+        setEpisodesWatched("");
+        setTotalEpisodes("");
+        setCurrentSeason("");
+      } else {
+        showWarning("Error", "Failed to add movie", "error");
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        showWarning("Error", error.message, "error");
+      } else {
+        showWarning("Error", "Failed to add movie", "error");
+      }
     }
   };
 
@@ -114,7 +168,7 @@ export default function HomeScreen() {
     if (success) {
       setMovies((prev) => prev.filter((movie) => movie.id !== id));
     } else {
-      Alert.alert("Error", "Failed to delete movie");
+      showWarning("Error", "Failed to delete movie", "error");
     }
   };
 
@@ -138,6 +192,20 @@ export default function HomeScreen() {
 
   const saveEdit = async () => {
     if (!editingMovie || !editTitle.trim()) return;
+
+    // Validate total episodes for TV series
+    if (editType === "series") {
+      const watched = parseInt(editEpisodes) || 0;
+      const total = parseInt(editTotalEpisodes) || 0;
+      if (total > 0 && total < watched) {
+        showWarning(
+          "Error",
+          "Total episodes cannot be less than watched episodes",
+          "error"
+        );
+        return;
+      }
+    }
 
     const updates = {
       title: editTitle.trim(),
@@ -176,7 +244,7 @@ export default function HomeScreen() {
       setEditTotalEpisodes("");
       setEditCurrentSeason("");
     } else {
-      Alert.alert("Error", "Failed to update movie");
+      showWarning("Error", "Failed to update movie", "error");
     }
   };
 
@@ -229,6 +297,17 @@ export default function HomeScreen() {
     return result;
   }, [movies, sortBy, filterBy, searchQuery]);
 
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.loadingContainer}>
+          <Loader size={64} />
+          <Text style={styles.loadingText}>Loading your movies...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (showSearch) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -255,7 +334,18 @@ export default function HomeScreen() {
             )}
           </View>
 
-          <ScrollView style={styles.container}>
+          <ScrollView
+            style={styles.container}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={colors.primary}
+                colors={[colors.primary]}
+                progressBackgroundColor={colors.card}
+              />
+            }
+          >
             {filteredAndSortedMovies.length === 0 ? (
               <View style={styles.emptyContainer}>
                 <Feather
@@ -296,7 +386,18 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.container}>
+      <ScrollView
+        style={styles.container}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+            progressBackgroundColor={colors.card}
+          />
+        }
+      >
         <View style={styles.header}>
           <Text style={styles.title}>Movie Tracker</Text>
           <View style={styles.headerButtons}>
@@ -427,6 +528,16 @@ export default function HomeScreen() {
         setEditTotalEpisodes={setEditTotalEpisodes}
         editCurrentSeason={editCurrentSeason}
         setEditCurrentSeason={setEditCurrentSeason}
+      />
+
+      <WarningDialog
+        visible={warningDialog.visible}
+        onClose={() =>
+          setWarningDialog((prev) => ({ ...prev, visible: false }))
+        }
+        title={warningDialog.title}
+        message={warningDialog.message}
+        type={warningDialog.type}
       />
     </SafeAreaView>
   );
