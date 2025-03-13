@@ -14,8 +14,7 @@ import {
   Pressable,
 } from "react-native";
 import { MovieCard } from "../../components/movie-card";
-import { useState, useMemo, useRef } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useTheme } from "../../lib/theme";
 import { Feather } from "@expo/vector-icons";
 import { Movie, SortOption, FilterOption, ViewMode } from "../../types/movie";
@@ -24,6 +23,7 @@ import { AddForm } from "../../components/add-form";
 import { EditModal } from "../../components/edit-modal";
 import { SortModal } from "../../components/sort-modal";
 import { FilterBar } from "../../components/filter-bar";
+import { movieService } from "../../lib/movieService";
 
 export default function HomeScreen() {
   const { colors, toggleTheme, theme } = useTheme();
@@ -51,7 +51,16 @@ export default function HomeScreen() {
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const searchAnimation = useRef(new Animated.Value(0)).current;
 
-  const addMovie = () => {
+  useEffect(() => {
+    loadMovies();
+  }, []);
+
+  const loadMovies = async () => {
+    const data = await movieService.getMovies();
+    setMovies(data);
+  };
+
+  const addMovie = async () => {
     if (!title.trim()) {
       Alert.alert("Error", "Please enter a title");
       return;
@@ -62,8 +71,7 @@ export default function HomeScreen() {
       return;
     }
 
-    const newMovie: Movie = {
-      id: Date.now().toString(),
+    const newMovie = {
       title: title.trim(),
       type,
       episodesWatched: type === "series" ? parseInt(episodesWatched) || 0 : 0,
@@ -77,14 +85,17 @@ export default function HomeScreen() {
       }),
     };
 
-    const updatedMovies = [...movies, newMovie];
-    setMovies(updatedMovies);
-    saveMovies(updatedMovies);
-    setTitle("");
-    setWatched(false);
-    setEpisodesWatched("");
-    setTotalEpisodes("");
-    setCurrentSeason("");
+    const addedMovie = await movieService.addMovie(newMovie);
+    if (addedMovie) {
+      setMovies((prev) => [...prev, addedMovie]);
+      setTitle("");
+      setWatched(false);
+      setEpisodesWatched("");
+      setTotalEpisodes("");
+      setCurrentSeason("");
+    } else {
+      Alert.alert("Error", "Failed to add movie");
+    }
   };
 
   const handleEdit = (movie: Movie) => {
@@ -98,81 +109,74 @@ export default function HomeScreen() {
     setIsEditModalVisible(true);
   };
 
-  const handleDelete = (id: string) => {
-    const updatedMovies = movies.filter((movie) => movie.id !== id);
-    setMovies(updatedMovies);
-    saveMovies(updatedMovies);
+  const handleDelete = async (id: string) => {
+    const success = await movieService.deleteMovie(id);
+    if (success) {
+      setMovies((prev) => prev.filter((movie) => movie.id !== id));
+    } else {
+      Alert.alert("Error", "Failed to delete movie");
+    }
   };
 
-  const handleIncrementEpisode = (id: string) => {
-    const updatedMovies = movies.map((movie) =>
-      movie.id === id
-        ? {
-            ...movie,
-            episodesWatched: movie.episodesWatched + 1,
-          }
-        : movie
-    );
-    setMovies(updatedMovies);
-    saveMovies(updatedMovies);
+  const handleIncrementEpisode = async (id: string) => {
+    const updatedMovie = await movieService.incrementEpisode(id);
+    if (updatedMovie) {
+      setMovies((prev) =>
+        prev.map((movie) => (movie.id === id ? updatedMovie : movie))
+      );
+    }
   };
 
-  const handleDecrementEpisode = (id: string) => {
-    const updatedMovies = movies.map((movie) =>
-      movie.id === id && movie.episodesWatched > 0
-        ? {
-            ...movie,
-            episodesWatched: movie.episodesWatched - 1,
-          }
-        : movie
-    );
-    setMovies(updatedMovies);
-    saveMovies(updatedMovies);
+  const handleDecrementEpisode = async (id: string) => {
+    const updatedMovie = await movieService.decrementEpisode(id);
+    if (updatedMovie) {
+      setMovies((prev) =>
+        prev.map((movie) => (movie.id === id ? updatedMovie : movie))
+      );
+    }
   };
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     if (!editingMovie || !editTitle.trim()) return;
 
-    const updatedMovies = movies.map((movie) =>
-      movie.id === editingMovie.id
-        ? {
-            ...movie,
-            title: editTitle.trim(),
-            type: editType,
-            episodesWatched:
-              editType === "movie"
-                ? 0
-                : parseInt(editEpisodes) || movie.episodesWatched,
-            totalEpisodes:
-              editType === "series"
-                ? parseInt(editTotalEpisodes) || undefined
-                : undefined,
-            currentSeason:
-              editType === "series"
-                ? parseInt(editCurrentSeason) || undefined
-                : undefined,
-            watched: editType === "movie" ? editWatched : undefined,
-          }
-        : movie
+    const updates = {
+      title: editTitle.trim(),
+      type: editType,
+      episodesWatched:
+        editType === "movie"
+          ? 0
+          : parseInt(editEpisodes) || editingMovie.episodesWatched,
+      totalEpisodes:
+        editType === "series"
+          ? parseInt(editTotalEpisodes) || undefined
+          : undefined,
+      currentSeason:
+        editType === "series"
+          ? parseInt(editCurrentSeason) || undefined
+          : undefined,
+      watched: editType === "movie" ? editWatched : undefined,
+    };
+
+    const updatedMovie = await movieService.updateMovie(
+      editingMovie.id,
+      updates
     );
-
-    setMovies(updatedMovies);
-    saveMovies(updatedMovies);
-    setIsEditModalVisible(false);
-    setEditingMovie(null);
-    setEditTitle("");
-    setEditType("movie");
-    setEditWatched(false);
-    setEditEpisodes("");
-    setEditTotalEpisodes("");
-    setEditCurrentSeason("");
-  };
-
-  const saveMovies = async (updatedMovies: Movie[]) => {
-    try {
-      await AsyncStorage.setItem("movies", JSON.stringify(updatedMovies));
-    } catch (error) {
-      console.error("Error saving movies:", error);
+    if (updatedMovie) {
+      setMovies((prev) =>
+        prev.map((movie) =>
+          movie.id === editingMovie.id ? updatedMovie : movie
+        )
+      );
+      setIsEditModalVisible(false);
+      setEditingMovie(null);
+      setEditTitle("");
+      setEditType("movie");
+      setEditWatched(false);
+      setEditEpisodes("");
+      setEditTotalEpisodes("");
+      setEditCurrentSeason("");
+    } else {
+      Alert.alert("Error", "Failed to update movie");
     }
   };
 

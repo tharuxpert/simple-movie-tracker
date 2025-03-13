@@ -14,7 +14,7 @@ A React Native application that helps you keep track of movies and TV series you
 - Toggle between list and grid view
 - Dark/Light theme support
 - Beautiful UI with custom styling
-- Persistent storage using AsyncStorage
+- Cloud storage using Supabase
 
 ## Setup
 
@@ -31,13 +31,27 @@ cd simple-movie-tracker
 npm install
 ```
 
-3. Start the development server:
+3. Set up Supabase:
+   - Create a new project at [Supabase](https://supabase.com)
+   - Create a new table called `movies` with the following columns:
+     - `id` (uuid, primary key)
+     - `title` (text)
+     - `type` (text)
+     - `episodesWatched` (integer)
+     - `totalEpisodes` (integer, nullable)
+     - `currentSeason` (integer, nullable)
+     - `watched` (boolean, nullable)
+     - `dateAdded` (timestamp with time zone)
+   - Get your project URL and anon key from the project settings
+   - Update the `lib/supabase.ts` file with your project URL and anon key
+
+4. Start the development server:
 
 ```bash
 npx expo start
 ```
 
-4. Use the Expo Go app on your mobile device to scan the QR code and run the app
+5. Use the Expo Go app on your mobile device to scan the QR code and run the app
 
 ## Usage
 
@@ -83,7 +97,7 @@ npx expo start
 - React Native
 - Expo
 - TypeScript
-- AsyncStorage for persistence
+- Supabase for cloud storage
 - Custom styling with React Native StyleSheet
 - Feather icons for UI elements
 
