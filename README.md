@@ -6,45 +6,87 @@ A React Native application that helps you keep track of movies and TV series you
 
 - Add movies and TV series to your watch list
 - Track episodes watched for TV series
-- Track total watch time
-- Beautiful UI with Tailwind CSS
+- Track total episodes and current season for TV series
+- Mark movies as watched/unwatched
+- Filter by movies or TV series
+- Sort by date added or title
+- Search through your collection
+- Toggle between list and grid view
+- Dark/Light theme support
+- Beautiful UI with custom styling
 - Persistent storage using AsyncStorage
 
 ## Setup
 
-1. Install dependencies:
+1. Clone the repository:
+
+```bash
+git clone https://github.com/tharuxpert/simple-movie-tracker.git
+cd simple-movie-tracker
+```
+
+2. Install dependencies:
 
 ```bash
 npm install
 ```
 
-2. Start the development server:
+3. Start the development server:
 
 ```bash
 npx expo start
 ```
 
-3. Use the Expo Go app on your mobile device to scan the QR code and run the app
+4. Use the Expo Go app on your mobile device to scan the QR code and run the app
 
 ## Usage
 
-- To add a new movie/series:
-
+### Adding Content
+- To add a new movie:
   1. Enter the title in the input field
-  2. Select whether it's a movie or TV series
-  3. Tap "Add Movie" or "Add Series"
+  2. Select "Movie" as the type
+  3. Optionally mark it as watched
+  4. Tap "Add Movie"
 
-- To track episodes:
+- To add a new TV series:
+  1. Enter the title in the input field
+  2. Select "TV Series" as the type
+  3. Enter the number of episodes watched
+  4. Optionally enter total episodes and current season
+  5. Tap "Add Series"
 
-  - For TV series, tap "+1 Episode" to increment the episode count
-  - For movies, tap "Watched" to mark it as watched
+### Managing Content
+- For TV series:
+  - Tap "+1 Episode" to increment the episode count
+  - Tap "-1 Episode" to decrement the episode count
+  - View progress bar and percentage for completed series
+  - Track current season and total episodes
 
-- The total watch time is displayed at the top of the list
+- For movies:
+  - Toggle the "Watched" status
+  - View watch status with a badge
+
+### Organization
+- Filter your collection by:
+  - All content
+  - Movies only
+  - TV Series only
+- Sort your collection by:
+  - Date Added (newest first)
+  - Title (alphabetically)
+- Search through your collection by title
+- Toggle between list and grid view for different layouts
+- Switch between light and dark themes
 
 ## Technologies Used
 
 - React Native
 - Expo
-- TailwindCSS/NativeWind
-- AsyncStorage for persistence
 - TypeScript
+- AsyncStorage for persistence
+- Custom styling with React Native StyleSheet
+- Feather icons for UI elements
+
+## Contributing
+
+Feel free to submit issues and enhancement requests!
