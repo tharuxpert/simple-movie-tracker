@@ -1,6 +1,13 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
-# dependencies
+# Environment variables
+.env
+.env.*
+
+# IDE
+.vscode/
+
+# Dependencies
 node_modules/
 
 # Expo
@@ -36,4 +43,3 @@ yarn-error.*
 *.tsbuildinfo
 
 app-example
-.vscode/
