@@ -119,16 +119,24 @@ export default function HomeScreen() {
       return;
     }
 
+    const episodesCount = parseInt(episodesWatched) || 0;
+    const totalEpisodesCount = parseInt(totalEpisodes) || 0;
+
     const newMovie = {
       title: title.trim(),
       type,
-      episodesWatched: type === "series" ? parseInt(episodesWatched) || 0 : 0,
+      episodesWatched: episodesCount,
       dateAdded: new Date().toISOString(),
-      watched: type === "movie" ? watched : false,
-      ...(type === "series" && {
-        totalEpisodes: parseInt(totalEpisodes) || undefined,
-        currentSeason: parseInt(currentSeason) || undefined,
-      }),
+      watched:
+        type === "movie"
+          ? watched
+          : totalEpisodesCount > 0
+          ? episodesCount >= totalEpisodesCount
+          : false,
+      totalEpisodes:
+        type === "series" ? totalEpisodesCount || undefined : undefined,
+      currentSeason:
+        type === "series" ? parseInt(currentSeason) || undefined : undefined,
     };
 
     try {
@@ -207,22 +215,25 @@ export default function HomeScreen() {
       }
     }
 
+    const episodesCount = parseInt(editEpisodes) || 0;
+    const totalEpisodesCount = parseInt(editTotalEpisodes) || 0;
+
     const updates = {
       title: editTitle.trim(),
       type: editType,
-      episodesWatched:
-        editType === "movie"
-          ? 0
-          : parseInt(editEpisodes) || editingMovie.episodesWatched,
+      episodesWatched: editType === "movie" ? 0 : episodesCount,
       totalEpisodes:
-        editType === "series"
-          ? parseInt(editTotalEpisodes) || undefined
-          : undefined,
+        editType === "series" ? totalEpisodesCount || undefined : undefined,
       currentSeason:
         editType === "series"
           ? parseInt(editCurrentSeason) || undefined
           : undefined,
-      watched: editType === "movie" ? editWatched : undefined,
+      watched:
+        editType === "movie"
+          ? editWatched
+          : totalEpisodesCount > 0
+          ? episodesCount >= totalEpisodesCount
+          : false,
     };
 
     const updatedMovie = await movieService.updateMovie(
@@ -278,13 +289,17 @@ export default function HomeScreen() {
           case "series":
             return movie.type === "series";
           case "watched":
-            return movie.watched;
+            return movie.type === "movie"
+              ? movie.watched
+              : movie.totalEpisodes
+              ? movie.episodesWatched >= movie.totalEpisodes
+              : false;
           case "completed":
             return movie.type === "movie"
               ? movie.watched
-              : movie.type === "series" &&
-                  movie.totalEpisodes &&
-                  movie.episodesWatched >= movie.totalEpisodes;
+              : movie.totalEpisodes
+              ? movie.episodesWatched >= movie.totalEpisodes
+              : false;
           default:
             return true;
         }
@@ -450,83 +465,86 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {filteredAndSortedMovies.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Feather
-              name={
-                filterBy === "movies"
-                  ? "film"
-                  : filterBy === "series"
-                  ? "tv"
-                  : "film"
-              }
-              size={48}
-              color={colors.muted}
-              style={styles.emptyIcon}
+        <FlatList
+          data={filteredAndSortedMovies}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item: movie }) => (
+            <MovieCard
+              key={movie.id}
+              {...movie}
+              viewMode={viewMode}
+              onEdit={() => handleEdit(movie)}
+              onDelete={() => handleDelete(movie.id)}
+              onIncrementEpisode={() => handleIncrementEpisode(movie.id)}
+              onDecrementEpisode={() => handleDecrementEpisode(movie.id)}
             />
-            <Text style={styles.emptyText}>
-              {searchQuery
-                ? `No results found for "${searchQuery}"`
-                : filterBy === "movies"
-                ? "No movies added yet"
-                : filterBy === "series"
-                ? "No TV series added yet"
-                : "Add your first movie or TV series to get started"}
-            </Text>
-          </View>
-        ) : (
-          <FlatList
-            data={filteredAndSortedMovies}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item: movie }) => (
-              <MovieCard
-                key={movie.id}
-                {...movie}
-                viewMode={viewMode}
-                onEdit={() => handleEdit(movie)}
-                onDelete={() => handleDelete(movie.id)}
-                onIncrementEpisode={() => handleIncrementEpisode(movie.id)}
-                onDecrementEpisode={() => handleDecrementEpisode(movie.id)}
+          )}
+          contentContainerStyle={styles.movieList}
+          refreshControl={
+            <RefreshControl
+              refreshing={isLoading}
+              onRefresh={loadMovies}
+              colors={[colors.primary]}
+              tintColor={colors.primary}
+              progressBackgroundColor={colors.card}
+            />
+          }
+          ListHeaderComponent={
+            <>
+              <AddForm
+                title={title}
+                setTitle={setTitle}
+                type={type}
+                setType={setType}
+                watched={watched}
+                setWatched={setWatched}
+                episodesWatched={episodesWatched}
+                setEpisodesWatched={setEpisodesWatched}
+                totalEpisodes={totalEpisodes}
+                setTotalEpisodes={setTotalEpisodes}
+                currentSeason={currentSeason}
+                setCurrentSeason={setCurrentSeason}
+                onAdd={addMovie}
               />
-            )}
-            contentContainerStyle={styles.movieList}
-            refreshControl={
-              <RefreshControl
-                refreshing={isLoading}
-                onRefresh={loadMovies}
-                colors={[colors.primary]}
-                tintColor={colors.primary}
-                progressBackgroundColor={colors.card}
-              />
-            }
-            ListHeaderComponent={
-              <>
-                <AddForm
-                  title={title}
-                  setTitle={setTitle}
-                  type={type}
-                  setType={setType}
-                  watched={watched}
-                  setWatched={setWatched}
-                  episodesWatched={episodesWatched}
-                  setEpisodesWatched={setEpisodesWatched}
-                  totalEpisodes={totalEpisodes}
-                  setTotalEpisodes={setTotalEpisodes}
-                  currentSeason={currentSeason}
-                  setCurrentSeason={setCurrentSeason}
-                  onAdd={addMovie}
+              {movies.length > 0 && (
+                <FilterBar
+                  filterBy={filterBy}
+                  onFilterChange={setFilterBy}
+                  onSortPress={() => setShowSortModal(true)}
                 />
-                {movies.length > 0 && (
-                  <FilterBar
-                    filterBy={filterBy}
-                    onFilterChange={setFilterBy}
-                    onSortPress={() => setShowSortModal(true)}
-                  />
-                )}
-              </>
-            }
-          />
-        )}
+              )}
+            </>
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Feather
+                name={
+                  filterBy === "movies"
+                    ? "film"
+                    : filterBy === "series"
+                    ? "tv"
+                    : "film"
+                }
+                size={48}
+                color={colors.muted}
+                style={styles.emptyIcon}
+              />
+              <Text style={styles.emptyText}>
+                {searchQuery
+                  ? `No results found for "${searchQuery}"`
+                  : filterBy === "movies"
+                  ? "No movies found"
+                  : filterBy === "series"
+                  ? "No TV series found"
+                  : filterBy === "watched"
+                  ? "No watched items found"
+                  : filterBy === "completed"
+                  ? "No completed items found"
+                  : "Add your first movie or TV series to get started"}
+              </Text>
+            </View>
+          }
+        />
 
         <SortModal
           visible={showSortModal}
