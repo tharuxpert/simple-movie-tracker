@@ -339,11 +339,13 @@ export default function HomeScreen() {
           onAdd={addMovie}
         />
 
-        <FilterBar
-          filterBy={filterBy}
-          onFilterChange={setFilterBy}
-          onSortPress={() => setShowSortModal(true)}
-        />
+        {movies.length > 0 && (
+          <FilterBar
+            filterBy={filterBy}
+            onFilterChange={setFilterBy}
+            onSortPress={() => setShowSortModal(true)}
+          />
+        )}
 
         {filteredAndSortedMovies.length === 0 ? (
           <View style={styles.emptyContainer}>
