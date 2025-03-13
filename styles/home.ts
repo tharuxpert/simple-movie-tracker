@@ -203,14 +203,15 @@ export const createHomeStyles = (colors: ThemeContextType["colors"]) =>
       marginBottom: 16,
     },
     searchInput: {
+      flex: 1,
+      height: 40,
       backgroundColor: colors.card,
-      borderRadius: 12,
+      borderRadius: 20,
       paddingHorizontal: 16,
-      paddingVertical: 12,
-      fontSize: 16,
       color: colors.text,
-      borderWidth: 1,
-      borderColor: colors.border,
+      fontSize: 16,
+      width: "100%",
+      maxWidth: "100%",
     },
     headerButtons: {
       flexDirection: "row",
@@ -297,5 +298,8 @@ export const createHomeStyles = (colors: ThemeContextType["colors"]) =>
       color: colors.muted,
       textAlign: "center",
       marginTop: 10,
+    },
+    movieList: {
+      padding: 16,
     },
   }); 

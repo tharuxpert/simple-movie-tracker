@@ -12,6 +12,8 @@ import {
   Animated,
   Pressable,
   RefreshControl,
+  ActivityIndicator,
+  FlatList,
 } from "react-native";
 import { MovieCard } from "../../components/movie-card";
 import { useState, useMemo, useRef, useEffect } from "react";
@@ -32,7 +34,7 @@ export default function HomeScreen() {
   const { colors, toggleTheme, theme } = useTheme();
   const styles = createHomeStyles(colors);
   const [movies, setMovies] = useState<Movie[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [title, setTitle] = useState("");
   const [type, setType] = useState<"movie" | "series">("movie");
@@ -73,10 +75,10 @@ export default function HomeScreen() {
   const loadMovies = async () => {
     setIsLoading(true);
     try {
-      const data = await movieService.getMovies();
-      setMovies(data);
+      const fetchedMovies = await movieService.getMovies();
+      setMovies(fetchedMovies);
     } catch (error) {
-      showWarning("Error", "Failed to load movies", "error");
+      console.error("Error loading movies:", error);
     } finally {
       setIsLoading(false);
     }
@@ -122,12 +124,10 @@ export default function HomeScreen() {
       type,
       episodesWatched: type === "series" ? parseInt(episodesWatched) || 0 : 0,
       dateAdded: new Date().toISOString(),
+      watched: type === "movie" ? watched : false,
       ...(type === "series" && {
         totalEpisodes: parseInt(totalEpisodes) || undefined,
         currentSeason: parseInt(currentSeason) || undefined,
-      }),
-      ...(type === "movie" && {
-        watched,
       }),
     };
 
@@ -269,17 +269,32 @@ export default function HomeScreen() {
   const filteredAndSortedMovies = useMemo(() => {
     let result = [...movies];
 
-    // Apply search
-    if (searchQuery.trim()) {
-      result = result.filter((movie) =>
-        movie.title.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
     // Apply filter
     if (filterBy !== "all") {
+      result = result.filter((movie) => {
+        switch (filterBy) {
+          case "movies":
+            return movie.type === "movie";
+          case "series":
+            return movie.type === "series";
+          case "watched":
+            return movie.watched;
+          case "completed":
+            return movie.type === "movie"
+              ? movie.watched
+              : movie.type === "series" &&
+                  movie.totalEpisodes &&
+                  movie.episodesWatched >= movie.totalEpisodes;
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Apply search
+    if (searchQuery) {
       result = result.filter((movie) =>
-        filterBy === "movies" ? movie.type === "movie" : movie.type === "series"
+        movie.title.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
@@ -290,12 +305,30 @@ export default function HomeScreen() {
           return a.title.localeCompare(b.title);
         case "dateAdded":
         default:
-          return b.dateAdded.localeCompare(a.dateAdded);
+          return (
+            new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime()
+          );
       }
     });
 
     return result;
   }, [movies, sortBy, filterBy, searchQuery]);
+
+  const handleAddMovie = () => {
+    const newMovie: Movie = {
+      id: Date.now().toString(), // Temporary ID
+      title: "",
+      type: "movie",
+      episodesWatched: 0,
+      totalEpisodes: 0,
+      currentSeason: 1,
+      watched: false,
+      dateAdded: new Date().toISOString(),
+    };
+
+    setEditingMovie(newMovie);
+    setIsEditModalVisible(true);
+  };
 
   if (isLoading) {
     return (
@@ -386,18 +419,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView
-        style={styles.container}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
-            progressBackgroundColor={colors.card}
-          />
-        }
-      >
+      <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>Movie Tracker</Text>
           <View style={styles.headerButtons}>
@@ -428,30 +450,6 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <AddForm
-          title={title}
-          setTitle={setTitle}
-          type={type}
-          setType={setType}
-          watched={watched}
-          setWatched={setWatched}
-          episodesWatched={episodesWatched}
-          setEpisodesWatched={setEpisodesWatched}
-          totalEpisodes={totalEpisodes}
-          setTotalEpisodes={setTotalEpisodes}
-          currentSeason={currentSeason}
-          setCurrentSeason={setCurrentSeason}
-          onAdd={addMovie}
-        />
-
-        {movies.length > 0 && (
-          <FilterBar
-            filterBy={filterBy}
-            onFilterChange={setFilterBy}
-            onSortPress={() => setShowSortModal(true)}
-          />
-        )}
-
         {filteredAndSortedMovies.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Feather
@@ -477,10 +475,10 @@ export default function HomeScreen() {
             </Text>
           </View>
         ) : (
-          <View
-            style={viewMode === "list" ? { padding: 16 } : styles.gridContainer}
-          >
-            {filteredAndSortedMovies.map((movie) => (
+          <FlatList
+            data={filteredAndSortedMovies}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item: movie }) => (
               <MovieCard
                 key={movie.id}
                 {...movie}
@@ -490,55 +488,91 @@ export default function HomeScreen() {
                 onIncrementEpisode={() => handleIncrementEpisode(movie.id)}
                 onDecrementEpisode={() => handleDecrementEpisode(movie.id)}
               />
-            ))}
-          </View>
+            )}
+            contentContainerStyle={styles.movieList}
+            refreshControl={
+              <RefreshControl
+                refreshing={isLoading}
+                onRefresh={loadMovies}
+                colors={[colors.primary]}
+                tintColor={colors.primary}
+                progressBackgroundColor={colors.card}
+              />
+            }
+            ListHeaderComponent={
+              <>
+                <AddForm
+                  title={title}
+                  setTitle={setTitle}
+                  type={type}
+                  setType={setType}
+                  watched={watched}
+                  setWatched={setWatched}
+                  episodesWatched={episodesWatched}
+                  setEpisodesWatched={setEpisodesWatched}
+                  totalEpisodes={totalEpisodes}
+                  setTotalEpisodes={setTotalEpisodes}
+                  currentSeason={currentSeason}
+                  setCurrentSeason={setCurrentSeason}
+                  onAdd={addMovie}
+                />
+                {movies.length > 0 && (
+                  <FilterBar
+                    filterBy={filterBy}
+                    onFilterChange={setFilterBy}
+                    onSortPress={() => setShowSortModal(true)}
+                  />
+                )}
+              </>
+            }
+          />
         )}
-      </ScrollView>
 
-      <SortModal
-        visible={showSortModal}
-        onClose={() => setShowSortModal(false)}
-        sortBy={sortBy}
-        onSort={setSortBy}
-      />
+        <SortModal
+          visible={showSortModal}
+          onClose={() => setShowSortModal(false)}
+          sortBy={sortBy}
+          onSort={setSortBy}
+        />
 
-      <EditModal
-        visible={isEditModalVisible}
-        onClose={() => {
-          setIsEditModalVisible(false);
-          setEditingMovie(null);
-          setEditTitle("");
-          setEditType("movie");
-          setEditWatched(false);
-          setEditEpisodes("");
-          setEditTotalEpisodes("");
-          setEditCurrentSeason("");
-        }}
-        onSave={saveEdit}
-        movie={editingMovie}
-        editTitle={editTitle}
-        setEditTitle={setEditTitle}
-        editType={editType}
-        setEditType={setEditType}
-        editWatched={editWatched}
-        setEditWatched={setEditWatched}
-        editEpisodes={editEpisodes}
-        setEditEpisodes={setEditEpisodes}
-        editTotalEpisodes={editTotalEpisodes}
-        setEditTotalEpisodes={setEditTotalEpisodes}
-        editCurrentSeason={editCurrentSeason}
-        setEditCurrentSeason={setEditCurrentSeason}
-      />
+        <EditModal
+          visible={isEditModalVisible}
+          onClose={() => {
+            setIsEditModalVisible(false);
+            setEditingMovie(null);
+            setEditTitle("");
+            setEditType("movie");
+            setEditWatched(false);
+            setEditEpisodes("");
+            setEditTotalEpisodes("");
+            setEditCurrentSeason("");
+          }}
+          onSave={saveEdit}
+          movie={editingMovie}
+          editTitle={editTitle}
+          setEditTitle={setEditTitle}
+          editType={editType}
+          setEditType={setEditType}
+          editWatched={editWatched}
+          setEditWatched={setEditWatched}
+          editEpisodes={editEpisodes}
+          setEditEpisodes={setEditEpisodes}
+          editTotalEpisodes={editTotalEpisodes}
+          setEditTotalEpisodes={setEditTotalEpisodes}
+          editCurrentSeason={editCurrentSeason}
+          setEditCurrentSeason={setEditCurrentSeason}
+        />
 
-      <WarningDialog
-        visible={warningDialog.visible}
-        onClose={() =>
-          setWarningDialog((prev) => ({ ...prev, visible: false }))
-        }
-        title={warningDialog.title}
-        message={warningDialog.message}
-        type={warningDialog.type}
-      />
+        <WarningDialog
+          visible={warningDialog.visible}
+          onClose={() =>
+            setWarningDialog((prev) => ({ ...prev, visible: false }))
+          }
+          title={warningDialog.title}
+          message={warningDialog.message}
+          type={warningDialog.type}
+        />
+      </View>
     </SafeAreaView>
   );
 }

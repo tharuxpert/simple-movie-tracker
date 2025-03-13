@@ -68,8 +68,40 @@ export function FilterBar({
           TV Series
         </Text>
       </TouchableOpacity>
+      <TouchableOpacity
+        style={[
+          styles.filterButton,
+          filterBy === "watched" && styles.filterButtonActive,
+        ]}
+        onPress={() => onFilterChange("watched")}
+      >
+        <Text
+          style={[
+            styles.filterButtonText,
+            filterBy === "watched" && styles.filterButtonTextActive,
+          ]}
+        >
+          Watched
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[
+          styles.filterButton,
+          filterBy === "completed" && styles.filterButtonActive,
+        ]}
+        onPress={() => onFilterChange("completed")}
+      >
+        <Text
+          style={[
+            styles.filterButtonText,
+            filterBy === "completed" && styles.filterButtonTextActive,
+          ]}
+        >
+          Completed
+        </Text>
+      </TouchableOpacity>
       <TouchableOpacity style={styles.sortButton} onPress={onSortPress}>
-        <Feather name="arrow-down" size={14} color={colors.muted} />
+        <Feather name="sliders" size={14} color={colors.muted} />
         <Text style={styles.filterButtonText}>Sort</Text>
       </TouchableOpacity>
     </View>
@@ -83,6 +115,7 @@ const createStyles = (colors: any) =>
       paddingHorizontal: 16,
       marginBottom: 16,
       gap: 8,
+      flexWrap: "wrap",
     },
     filterButton: {
       paddingHorizontal: 16,
