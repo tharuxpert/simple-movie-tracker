@@ -6,25 +6,21 @@ import {
   StyleSheet,
   Modal,
   Dimensions,
+  StyleProp,
+  ViewStyle,
 } from "react-native";
 import { useTheme } from "../lib/theme";
 import { Feather } from "@expo/vector-icons";
+import { Movie, ViewMode } from "../types/movie";
 
-interface MovieCardProps {
+interface MovieCardProps extends Omit<Movie, "id"> {
   id: string;
-  title: string;
-  type: "movie" | "series";
-  episodesWatched: number;
-  totalEpisodes?: number;
-  currentSeason?: number;
-  dateAdded: string;
-  isFavorite?: boolean;
-  watched?: boolean;
-  viewMode: "list" | "grid";
+  viewMode: ViewMode;
   onEdit: () => void;
   onDelete: () => void;
   onIncrementEpisode: () => void;
   onDecrementEpisode: () => void;
+  style?: StyleProp<ViewStyle>;
 }
 
 const { width } = Dimensions.get("window");
@@ -46,6 +42,7 @@ export function MovieCard({
   onDelete,
   onIncrementEpisode,
   onDecrementEpisode,
+  style,
 }: MovieCardProps) {
   const { colors } = useTheme();
   const [showDeleteModal, setShowDeleteModal] = React.useState(false);
@@ -280,7 +277,13 @@ export function MovieCard({
 
   return (
     <>
-      <View style={styles.card}>
+      <View
+        style={[
+          styles.card,
+          viewMode === "grid" ? styles.gridCard : styles.listCard,
+          style,
+        ]}
+      >
         <View style={styles.header}>
           <Text
             style={styles.title}

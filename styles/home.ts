@@ -87,25 +87,24 @@ export const createHomeStyles = (colors: ThemeContextType["colors"]) =>
     },
     modalContainer: {
       flex: 1,
-      justifyContent: "center",
-      alignItems: "center",
-      backgroundColor: colors.background + "CC",
+      marginTop: 60,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      paddingHorizontal: 16,
+      paddingTop: 16,
     },
-    modalContent: {
-      backgroundColor: colors.card,
-      width: "90%",
-      minWidth: 280,
-      maxWidth: 400,
-      padding: 20,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.border,
+    modalHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 16,
     },
     modalTitle: {
       fontSize: 20,
       fontWeight: "bold",
-      color: colors.text,
-      marginBottom: 16,
+    },
+    closeButton: {
+      padding: 8,
     },
     inputLabel: {
       fontSize: 14,
@@ -241,7 +240,8 @@ export const createHomeStyles = (colors: ThemeContextType["colors"]) =>
     gridContainer: {
       flexDirection: "row",
       flexWrap: "wrap",
-      padding: 8,
+      justifyContent: "space-between",
+      paddingHorizontal: 16,
     },
     searchActiveContainer: {
       flex: 1,
@@ -301,5 +301,20 @@ export const createHomeStyles = (colors: ThemeContextType["colors"]) =>
     },
     movieList: {
       padding: 16,
+    },
+    fab: {
+      position: "absolute",
+      bottom: 24,
+      right: 24,
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      justifyContent: "center",
+      alignItems: "center",
+      elevation: 4,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
     },
   }); 

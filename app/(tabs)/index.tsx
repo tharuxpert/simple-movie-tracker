@@ -14,6 +14,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   FlatList,
+  Dimensions,
 } from "react-native";
 import { MovieCard } from "../../components/movie-card";
 import { useState, useMemo, useRef, useEffect } from "react";
@@ -67,6 +68,7 @@ export default function HomeScreen() {
     title: "",
     message: "",
   });
+  const [showAddModal, setShowAddModal] = useState(false);
 
   useEffect(() => {
     loadMovies();
@@ -345,6 +347,10 @@ export default function HomeScreen() {
     setIsEditModalVisible(true);
   };
 
+  const numColumns = viewMode === "grid" ? 2 : 1;
+  const screenWidth = Dimensions.get("window").width;
+  const itemWidth = (screenWidth - 48) / 2; // 48 = padding (16) * 2 + gap between items (16)
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -418,6 +424,9 @@ export default function HomeScreen() {
                     key={movie.id}
                     {...movie}
                     viewMode={viewMode}
+                    style={
+                      viewMode === "grid" ? { width: itemWidth } : undefined
+                    }
                     onEdit={() => handleEdit(movie)}
                     onDelete={() => handleDelete(movie.id)}
                     onIncrementEpisode={() => handleIncrementEpisode(movie.id)}
@@ -467,19 +476,25 @@ export default function HomeScreen() {
 
         <FlatList
           data={filteredAndSortedMovies}
+          key={viewMode} // Force re-render when view mode changes
           keyExtractor={(item) => item.id}
+          numColumns={numColumns}
           renderItem={({ item: movie }) => (
             <MovieCard
               key={movie.id}
               {...movie}
               viewMode={viewMode}
+              style={viewMode === "grid" ? { width: itemWidth } : undefined}
               onEdit={() => handleEdit(movie)}
               onDelete={() => handleDelete(movie.id)}
               onIncrementEpisode={() => handleIncrementEpisode(movie.id)}
               onDecrementEpisode={() => handleDecrementEpisode(movie.id)}
             />
           )}
-          contentContainerStyle={styles.movieList}
+          contentContainerStyle={[
+            styles.movieList,
+            viewMode === "grid" && styles.gridContainer,
+          ]}
           refreshControl={
             <RefreshControl
               refreshing={isLoading}
@@ -490,30 +505,13 @@ export default function HomeScreen() {
             />
           }
           ListHeaderComponent={
-            <>
-              <AddForm
-                title={title}
-                setTitle={setTitle}
-                type={type}
-                setType={setType}
-                watched={watched}
-                setWatched={setWatched}
-                episodesWatched={episodesWatched}
-                setEpisodesWatched={setEpisodesWatched}
-                totalEpisodes={totalEpisodes}
-                setTotalEpisodes={setTotalEpisodes}
-                currentSeason={currentSeason}
-                setCurrentSeason={setCurrentSeason}
-                onAdd={addMovie}
+            movies.length > 0 ? (
+              <FilterBar
+                filterBy={filterBy}
+                onFilterChange={setFilterBy}
+                onSortPress={() => setShowSortModal(true)}
               />
-              {movies.length > 0 && (
-                <FilterBar
-                  filterBy={filterBy}
-                  onFilterChange={setFilterBy}
-                  onSortPress={() => setShowSortModal(true)}
-                />
-              )}
-            </>
+            ) : null
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
@@ -545,6 +543,57 @@ export default function HomeScreen() {
             </View>
           }
         />
+
+        <TouchableOpacity
+          style={[styles.fab, { backgroundColor: colors.primary }]}
+          onPress={() => setShowAddModal(true)}
+        >
+          <Feather name="plus" size={24} color={colors.background} />
+        </TouchableOpacity>
+
+        <Modal
+          visible={showAddModal}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setShowAddModal(false)}
+        >
+          <View
+            style={[
+              styles.modalContainer,
+              { backgroundColor: colors.background },
+            ]}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>
+                Add New
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowAddModal(false)}
+                style={styles.closeButton}
+              >
+                <Feather name="x" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <AddForm
+              title={title}
+              setTitle={setTitle}
+              type={type}
+              setType={setType}
+              watched={watched}
+              setWatched={setWatched}
+              episodesWatched={episodesWatched}
+              setEpisodesWatched={setEpisodesWatched}
+              totalEpisodes={totalEpisodes}
+              setTotalEpisodes={setTotalEpisodes}
+              currentSeason={currentSeason}
+              setCurrentSeason={setCurrentSeason}
+              onAdd={async () => {
+                await addMovie();
+                setShowAddModal(false);
+              }}
+            />
+          </View>
+        </Modal>
 
         <SortModal
           visible={showSortModal}
