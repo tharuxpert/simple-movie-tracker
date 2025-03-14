@@ -291,17 +291,13 @@ export default function HomeScreen() {
           case "series":
             return movie.type === "series";
           case "watched":
-            return movie.type === "movie"
-              ? movie.watched
-              : movie.totalEpisodes
-              ? movie.episodesWatched >= movie.totalEpisodes
-              : false;
+            return movie.type === "movie" && movie.watched;
           case "completed":
-            return movie.type === "movie"
-              ? movie.watched
-              : movie.totalEpisodes
-              ? movie.episodesWatched >= movie.totalEpisodes
-              : false;
+            return (
+              movie.type === "series" &&
+              movie.totalEpisodes &&
+              movie.episodesWatched >= movie.totalEpisodes
+            );
           default:
             return true;
         }
@@ -349,7 +345,9 @@ export default function HomeScreen() {
 
   const numColumns = viewMode === "grid" ? 2 : 1;
   const screenWidth = Dimensions.get("window").width;
-  const itemWidth = (screenWidth - 48) / 2; // 48 = padding (16) * 2 + gap between items (16)
+  const padding = 16;
+  const gap = 16;
+  const itemWidth = (screenWidth - padding * 2 - gap) / 2;
 
   if (isLoading) {
     return (
@@ -479,6 +477,8 @@ export default function HomeScreen() {
           key={viewMode} // Force re-render when view mode changes
           keyExtractor={(item) => item.id}
           numColumns={numColumns}
+          columnWrapperStyle={viewMode === "grid" ? { gap } : undefined}
+          contentContainerStyle={[{ padding }, viewMode === "grid" && { gap }]}
           renderItem={({ item: movie }) => (
             <MovieCard
               key={movie.id}
@@ -491,10 +491,6 @@ export default function HomeScreen() {
               onDecrementEpisode={() => handleDecrementEpisode(movie.id)}
             />
           )}
-          contentContainerStyle={[
-            styles.movieList,
-            viewMode === "grid" && styles.gridContainer,
-          ]}
           refreshControl={
             <RefreshControl
               refreshing={isLoading}
@@ -535,9 +531,9 @@ export default function HomeScreen() {
                   : filterBy === "series"
                   ? "No TV series found"
                   : filterBy === "watched"
-                  ? "No watched items found"
+                  ? "No watched movies found"
                   : filterBy === "completed"
-                  ? "No completed items found"
+                  ? "No completed TV series found"
                   : "Add your first movie or TV series to get started"}
               </Text>
             </View>

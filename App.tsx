@@ -1,7 +1,7 @@
 import { View } from "react-native";
 import { withExpoSnack } from "nativewind";
-import HomeScreen from "./app/(tabs)";
 import { ThemeProvider } from "./lib/theme";
+import HomeScreen from "./app/(tabs)";
 
 function App() {
   return (

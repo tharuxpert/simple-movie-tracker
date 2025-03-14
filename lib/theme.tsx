@@ -1,64 +1,75 @@
-import * as React from "react";
-import { StatusBar } from "react-native";
+import React, { createContext, useContext, useState, useCallback } from "react";
+import { useColorScheme } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { StatusBar } from "react-native";
 
-type Theme = "light" | "dark";
-
-const THEME_STORAGE_KEY = "@movie_tracker_theme";
+export interface Theme {
+  colors: {
+    primary: string;
+    background: string;
+    card: string;
+    text: string;
+    border: string;
+    muted: string;
+    accent: string;
+    secondary: string;
+  };
+}
 
 export interface ThemeContextType {
-  theme: Theme;
-  colors: {
-    text: string;
-    background: string;
-    primary: string;
-    secondary: string;
-    accent: string;
-    muted: string;
-    card: string;
-    border: string;
-  };
+  theme: "light" | "dark";
+  colors: Theme["colors"];
   toggleTheme: () => void;
 }
 
-const themes = {
-  light: {
-    background: "#ffffff",
-    card: "#f8fafc",
-    text: "#1e293b",
-    primary: "#6366f1",
-    secondary: "#8b5cf6",
-    accent: "#ec4899",
-    muted: "#94a3b8",
-    border: "#e2e8f0",
-  },
-  dark: {
-    background: "#0f172a",
-    card: "#1e293b",
-    text: "#f8fafc",
-    primary: "#818cf8",
-    secondary: "#a78bfa",
-    accent: "#f472b6",
-    muted: "#64748b",
-    border: "#334155",
-  },
+const lightTheme: Theme["colors"] = {
+  primary: "#007AFF",
+  background: "#F2F2F7",
+  card: "#FFFFFF",
+  text: "#000000",
+  border: "#E5E5EA",
+  muted: "#8E8E93",
+  accent: "#FF3B30",
+  secondary: "#5856D6",
 };
 
-export const ThemeContext = React.createContext<ThemeContextType>({
-  theme: "light",
-  colors: themes.light,
-  toggleTheme: () => {},
-});
+const darkTheme: Theme["colors"] = {
+  primary: "#0A84FF",
+  background: "#000000",
+  card: "#1C1C1E",
+  text: "#FFFFFF",
+  border: "#38383A",
+  muted: "#8E8E93",
+  accent: "#FF453A",
+  secondary: "#5E5CE6",
+};
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = React.useState<Theme>("light");
-  const [isLoading, setIsLoading] = React.useState(true);
+export const ThemeContext = createContext<ThemeContextType | null>(null);
+
+export const useTheme = () => {
+  const context = useContext(ThemeContext);
+  if (!context) {
+    throw new Error("useTheme must be used within a ThemeProvider");
+  }
+  return context;
+};
+
+interface ThemeProviderProps {
+  children: React.ReactNode;
+}
+
+export function ThemeProvider({ children }: ThemeProviderProps) {
+  const systemColorScheme = useColorScheme();
+  const [theme, setTheme] = useState<"light" | "dark">(
+    systemColorScheme || "light"
+  );
+  const [isLoading, setIsLoading] = useState(true);
 
   // Load saved theme on mount
   React.useEffect(() => {
     const loadTheme = async () => {
       try {
-        const savedTheme = await AsyncStorage.getItem(THEME_STORAGE_KEY);
+        const savedTheme = await AsyncStorage.getItem("@movie_tracker_theme");
         if (savedTheme && (savedTheme === "light" || savedTheme === "dark")) {
           setTheme(savedTheme);
         }
@@ -72,24 +83,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     loadTheme();
   }, []);
 
-  const toggleTheme = React.useCallback(async () => {
-    try {
-      const newTheme = theme === "light" ? "dark" : "light";
-      await AsyncStorage.setItem(THEME_STORAGE_KEY, newTheme);
-      setTheme(newTheme);
-    } catch (error) {
-      console.error("Error saving theme:", error);
-    }
-  }, [theme]);
+  const toggleTheme = useCallback(() => {
+    setTheme((prev) => (prev === "light" ? "dark" : "light"));
+  }, []);
 
-  const value = React.useMemo(
-    () => ({
-      theme,
-      colors: themes[theme],
-      toggleTheme,
-    }),
-    [theme, toggleTheme]
-  );
+  const colors = theme === "light" ? lightTheme : darkTheme;
 
   React.useEffect(() => {
     StatusBar.setBarStyle(theme === "dark" ? "light-content" : "dark-content");
@@ -105,8 +103,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+    <ThemeContext.Provider value={{ theme, colors, toggleTheme }}>
+      {children}
+    </ThemeContext.Provider>
   );
 }
-
-export const useTheme = () => React.useContext(ThemeContext);

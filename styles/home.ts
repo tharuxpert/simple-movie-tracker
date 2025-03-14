@@ -237,11 +237,8 @@ export const createHomeStyles = (colors: ThemeContextType["colors"]) =>
       marginBottom: 16,
       opacity: 0.5,
     },
-    gridContainer: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      justifyContent: "space-between",
-      paddingHorizontal: 16,
+    movieList: {
+      padding: 16,
     },
     searchActiveContainer: {
       flex: 1,
@@ -299,9 +296,6 @@ export const createHomeStyles = (colors: ThemeContextType["colors"]) =>
       textAlign: "center",
       marginTop: 10,
     },
-    movieList: {
-      padding: 16,
-    },
     fab: {
       position: "absolute",
       bottom: 24,
@@ -316,5 +310,10 @@ export const createHomeStyles = (colors: ThemeContextType["colors"]) =>
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.25,
       shadowRadius: 4,
+    },
+    gridContainer: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      justifyContent: "space-between",
     },
   }); 
